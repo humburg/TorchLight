@@ -512,7 +512,7 @@ class TorchLight {
 			let hasItem = false;
 			actor.data.items.forEach(item => {
 				if (item.name.toLowerCase() === itemToCheck.toLowerCase()) {
-					if (item.data.quantity > 0)
+					if (item.data.data.quantity > 0)
 						hasItem = true;
 				}
 			});
@@ -532,15 +532,15 @@ class TorchLight {
 				if (actor === undefined)
 					return false;
 				let hasItem = false;
-				actor.data.items.forEach((item, offset) => {
+				actor.data.items.forEach(item => {
 					if (item.name.toLowerCase() === itemToCheck.toLowerCase()) {
-						if (item.data.quantity > 0) {
+						if (item.data.data.quantity > 0) {
 							hasItem = true;
-							actor.updateOwnedItem({"_id": actor.data.items[offset]._id, "data.quantity": actor.data.items[offset].data.quantity - 1});
+							item.update({"data.quantity": item.data.data.quantity - 1});
 						}
 					}
 				});
-				consume = hasItem
+				consume = hasItem;
 			}
 			return consume;
 		}

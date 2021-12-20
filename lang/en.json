@@ -93,8 +93,8 @@
 	"torchlight.lanternType.customAnimationSpeed.hint": "Choose the animation speed of the custom lantern.",
 	"torchlight.lanternType.customAnimationIntensity.name": "Custom Lantern Animation Intensity",
 	"torchlight.lanternType.customAnimationIntensity.hint": "Choose the animation intensity of the custom lantern.",
-	"torchlight.nameConsumableTorch.name": "Consumable Item for Lantern",
-	"torchlight.nameConsumableTorch.hint": "Name of the inventory item to check and potentially consume when a lantern is lit.",
+	"torchlight.nameConsumableLantern.name": "Consumable Item for Lantern",
+	"torchlight.nameConsumableLantern.hint": "Name of the inventory item to check and potentially consume when a lantern is lit.",
 
 	"torchlight.torchBrightRadius.name": "Torch: Bright Light Radius",
 	"torchlight.torchBrightRadius.hint": "Torch: How many grid units of bright light to emit.",

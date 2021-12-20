@@ -25,5 +25,9 @@
 	"manifest": "https://raw.githubusercontent.com/humburg/TorchLight/main/module.json",
 	"download": "https://github.com/humburg/TorchLight/raw/main/torchlight.zip",
 	"minimumCoreVersion": "0.8.9",
-	"compatibleCoreVersion": "0.8.9"
+	"compatibleCoreVersion": "0.8.9",
+	"dependencies": [
+		{"name": "about-time",
+		"manifest": "https://gitlab.com/tposney/about-time/raw/master/package/module.json"}
+	]
 }

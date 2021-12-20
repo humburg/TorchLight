@@ -3,7 +3,7 @@
 	"title": "TorchLight",
 	"description": "TorchLight HUD Controls",
 	"version": "0.12.0",
-	"author": "PhilippeK",
+	"authors": [{"name":"PhilippeK"},{"name":"Pytheas"}],
 	"languages": [
 		{
 			"lang": "en",

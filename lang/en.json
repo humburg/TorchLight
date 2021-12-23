@@ -36,6 +36,8 @@
 	"torchlight.lightBrightRadius.hint": "Light Spell: How many grid units of bright light to emit.",
 	"torchlight.lightDimRadius.name": "Light Spell: Dim Light Radius",
 	"torchlight.lightDimRadius.hint": "Light Spell: How many grid units of dim light to emit.",
+	"torchlight.lightDuration.name": "Light Spell: Duration",
+	"torchlight.lightDuration.hint": "Minutes of light provided by the light spell. Set to -1 to disable time tracking.",
 	"torchlight.lightType.name": "Light Spell: Type of Light",
 	"torchlight.lightType.hint": "Choose the appearance of the Light Spell.",
 	"torchlight.lightType.type0": "0 - White - No Effect",

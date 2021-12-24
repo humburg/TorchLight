@@ -218,7 +218,7 @@ class TorchLight {
 			// Check if the token has the lantern on
 			if (token.getFlag("torchlight", "lanternStatus")) {
 				// The token has a lantern on
-				TorchLight.extinguishLight(game.scenes.current.id, token.id, "torch")
+				TorchLight.extinguishLight(game.scenes.current.id, token.id, "lantern")
 			} else {
 				// The token does not have the lantern on
 				console.log("Clicked on the lantern when the lantern is off.");

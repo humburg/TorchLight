@@ -761,7 +761,7 @@ Hooks.once("init", () => {
 		hint: game.i18n.localize("torchlight.lanternBrightRadius.hint"),
 		scope: "world",
 		config: true,
-		default: 20,
+		default: 30,
 		type: Number
 	});
 	game.settings.register("torchlight", "lanternDimRadius", {
@@ -769,7 +769,7 @@ Hooks.once("init", () => {
 		hint: game.i18n.localize("torchlight.lanternDimRadius.hint"),
 		scope: "world",
 		config: true,
-		default: 40,
+		default: 60,
 		type: Number
 	});
 	game.settings.register("torchlight", "lanternDuration", {

@@ -40,7 +40,7 @@ class TorchLight {
 		// Light is inactive, enable the relevant light sources according to parameters
 		TorchLight.enableRelevantButtons(token);
 		// Restore the initial light source
-		await token.data.update(await TorchLight.getStoredLighting(token));
+		await TorchLight.restoreLighting(token);
 		if(game.settings.get("torchlight", light + "Duration") > 0){
 			game.Gametime.clearTimeout(token.getFlag("torchlight", light + "Timer"));
 			await token.unsetFlag("torchlight", light + "Timer");
@@ -50,8 +50,11 @@ class TorchLight {
 	// Visually and functionally enable a torchlight button
 	static enableTorchlightButton(tbutton, token) {
 		// Remove the disabled status, if any
-		tbutton.find('i').removeClass('fa-disabled');
-		tbutton.click(async (ev) => TorchLight.onButtonClick(ev, tbutton, token));
+		if(!tbutton.hasClass('active')){
+			tbutton.find('i').removeClass('fa-disabled');
+			tbutton.click(async (ev) => TorchLight.onButtonClick(ev, tbutton, token));
+			tbutton.addClass('active')
+		}
 	}
 
 	// Visually and functionally disable a torchlight button
@@ -61,25 +64,31 @@ class TorchLight {
 		tbutton.removeClass('active');
 	}
 
+	// Deactivate all buttons
+	static resetTorchLightButtons() {
+		for (var button in TorchLight.buttons){
+			TorchLight.disableTorchlightButton(TorchLight.buttons[button])
+		}
+	}
+
 	// Enable or disable buttons according to parameters
 	static enableRelevantButtons(token) {
-		const data = token.data;
 		// Stores if checks need to be made to enable buttons
 		let noCheck = game.system.id !== 'dnd5e';
 		if (!noCheck)
 			noCheck = (game.user.isGM && !game.settings.get("torchlight", "dmAsPlayer")) || !game.settings.get("torchlight", "checkAvailability");
 
-		if (noCheck || TorchLight.canCastLight(data))
+		if (noCheck || TorchLight.canCastLight(token))
 			TorchLight.enableTorchlightButton(TorchLight.buttons.light, token);
 		else
 			TorchLight.disableTorchlightButton(TorchLight.buttons.light);
 
-		if (noCheck || (TorchLight.hasItemInInventory(game.settings.get("torchlight", "nameConsumableLantern"), data) && (TorchLight.hasItemInInventory("Lantern, Hooded", data) || TorchLight.hasItemInInventory("Lantern, Bullseye"), data)))
+		if (noCheck || (TorchLight.hasItemInInventory(game.settings.get("torchlight", "nameConsumableLantern"), token) && (TorchLight.hasItemInInventory("Lantern, Hooded", token) || TorchLight.hasItemInInventory("Lantern, Bullseye"), token)))
 			TorchLight.enableTorchlightButton(TorchLight.buttons.lantern, token);
 		else
 			TorchLight.disableTorchlightButton(TorchLight.buttons.lantern);
 
-		if (noCheck || TorchLight.hasItemInInventory(game.settings.get("torchlight", "nameConsumableTorch"), data))
+		if (noCheck || TorchLight.hasItemInInventory(game.settings.get("torchlight", "nameConsumableTorch"), token))
 			TorchLight.enableTorchlightButton(TorchLight.buttons.torch, token);
 		else
 			TorchLight.disableTorchlightButton(TorchLight.buttons.torch);
@@ -87,8 +96,8 @@ class TorchLight {
 
 	// Returns true if the character can use the Light spell
 	// This also returns true if the game system is not D&D 5e...
-	static canCastLight(data) {
-		let actor = game.actors.get(data.actorId);
+	static canCastLight(token) {
+		let actor = game.actors.get(token.actor.id);
 		if (actor === undefined)
 			return false;
 		let hasLight = false;
@@ -103,8 +112,8 @@ class TorchLight {
 
 	// Returns true if the character has a specific item in his inventory
 	// This also returns true if the game system is not D&D 5e...
-	static hasItemInInventory(itemToCheck, data) {
-		let actor = game.actors.get(data.actorId);
+	static hasItemInInventory(itemToCheck, token) {
+		let actor = game.actors.get(token.actor.id);
 		if (actor === undefined)
 			return false;
 		let hasItem = false;
@@ -120,7 +129,16 @@ class TorchLight {
 
 	static async startTimer(scene, token, source){
 		if(game.settings.get("torchlight", source + "Duration") > 0){
-			let lightTimer = game.Gametime.doIn({minutes: game.settings.get("torchlight", source + "Duration")}, (s, t, y) => TorchLight.extinguishLight(s, t, y), scene.id, token.id, source);
+			let lightTimer = game.Gametime.doIn({minutes: game.settings.get("torchlight", source + "Duration")}, (s, t, y) => {
+				console.log("Processing timeout for " + y + ".");
+				const token = game.scenes.get(s).tokens.get(t);
+				token.setFlag("torchlight", y + "Status", false);
+				TorchLight.buttons[y].removeClass("active");
+				// Light is inactive, enable the relevant light sources according to parameters
+				TorchLight.enableRelevantButtons(token);
+				// Restore the initial light source
+				TorchLight.restoreLighting(token);
+			}, scene.id, token.id, source);
 			await token.setFlag("torchlight", source + "Timer", lightTimer);
 		}
 	}
@@ -223,7 +241,7 @@ class TorchLight {
 				// The token does not have the lantern on
 				console.log("Clicked on the lantern when the lantern is off.");
 				// Checks whether the character can consume an oil flask
-				if (TorchLight.consumeItem(game.settings.get("torchlight", "nameConsumableLantern"), token.data)) {
+				if (TorchLight.consumeItem(game.settings.get("torchlight", "nameConsumableLantern"), token)) {
 					await token.setFlag("torchlight", "lanternStatus", true);
 					TorchLight.buttons.lantern.addClass("active");
 					// Lantern is active, disable the other light sources
@@ -283,7 +301,7 @@ class TorchLight {
 					// There is no oil to consume, signal and disable the button
 					ChatMessage.create({
 						user: game.user._id,
-						speaker: game.actors.get(data.actorId),
+						speaker: game.actors.get(token.actor.id),
 						content: "No " + game.settings.get("torchlight", "nameConsumableLantern") + " in Inventory !"
 					});
 					TorchLight.disableTorchlightButton(TorchLight.buttons.lantern);
@@ -299,7 +317,7 @@ class TorchLight {
 				// The token does not have the torch on
 				console.log("Clicked on the torch when the torch is off.");
 				// Checks whether the character can consume a torch
-				if (TorchLight.consumeItem(game.settings.get("torchlight", "nameConsumableTorch"), token.data)) {
+				if (TorchLight.consumeItem(game.settings.get("torchlight", "nameConsumableTorch"), token)) {
 					await token.setFlag("torchlight", "torchStatus", true);
 					TorchLight.buttons.torch.addClass("active");
 					// Torch is active, disable the other light sources
@@ -358,7 +376,7 @@ class TorchLight {
 					// There is no torch to consume, signal and disable the button
 					ChatMessage.create({
 						user: game.user._id,
-						speaker: game.actors.get(token.data.actorId),
+						speaker: game.actors.get(token.actor.id),
 						content: "No " + game.settings.get("torchlight", "nameConsumableTorch") + " in Inventory !"
 					});
 					TorchLight.disableTorchlightButton(TorchLight.buttons.torch);
@@ -369,7 +387,7 @@ class TorchLight {
 
 	// Update the relevant light parameters of a token
 	static updateTokenLighting(token, brightLight, dimLight, lightColor, colorIntensity, lightAngle, animationType, animationSpeed, animationIntensity) {
-		token.data.update({
+		token.update({
 			brightLight: brightLight,
 			dimLight: dimLight,
 			lightColor: lightColor,
@@ -383,41 +401,37 @@ class TorchLight {
 		});
 	}
 
+	static async restoreLighting(token){
+		let lighting = token.getFlag("torchlight", "InitialLight");
+		TorchLight.updateTokenLighting(token, lighting.brightLight, lighting.dimLight, lighting.lightColor, Math.sqrt(lighting.lightAlpha), lighting.lightAngle, lighting.lightAnimation.type, lighting.lightAnimation.speed, lighting.lightAnimation.intensity)
+	}
 	// store initial lighting setup
 	static async saveTokenLighting(token) {
-		return token.setFlag("torchlight", "InitialLight", TorchLight.getTokenLighting(token.data));
-	}
-
-	static getStoredLighting(token) {
-		return token.getFlag("torchlight", "InitialLight");
-	}
-
-	// format current token lighting to restore later
-	static getTokenLighting(data) {
-		return {
-			brightLight: data.brightLight,
-			dimLight: data.dimLight,
-			lightColor: data.lightColor ? data.lightColor.toString(16).padStart(6, 0) : null,
-			lightAlpha: data.lightAlpha,
-			lightAngle: data.lightAngle,
+		const lighting = {
+			brightLight: token.data.brightLight,
+			dimLight: token.data.dimLight,
+			lightColor: token.data.lightColor ? token.data.lightColor.toString(16).padStart(6, 0) : null,
+			lightAlpha: token.data.lightAlpha,
+			lightAngle: token.data.lightAngle,
 			lightAnimation: {
-				type: data.lightAnimation.type,
-				speed: data.lightAnimation.speed,
-				intensity: data.lightAnimation.intensity
+				type: token.data.lightAnimation.type,
+				speed: token.data.lightAnimation.speed,
+				intensity: token.data.lightAnimation.intensity
 			}
 		};
+		return token.setFlag("torchlight", "InitialLight", lighting);
 	}
 
 	// Returns true if either the character does not need to consume an item
 	// or if he can indeed consume it (and it is actually consumed)
-	static consumeItem(itemToCheck, data) {
+	static consumeItem(itemToCheck, token) {
 		let consume = game.system.id !== 'dnd5e';
 		if (!consume)
 			consume = (game.user.isGM && !game.settings.get("torchlight", "dmAsPlayer")) ||
 							!game.settings.get("torchlight", "checkAvailability") ||
 							!game.settings.get("torchlight", "consumeItem");
 		if (!consume) {
-			let actor = game.actors.get(data.actorId);
+			let actor = game.actors.get(token.actor.id);
 			if (actor === undefined)
 				return false;
 			let hasItem = false;
@@ -435,8 +449,8 @@ class TorchLight {
 	}
 
 	/*
-		 * Returns the first GM id.
-		 */
+	* Returns the first GM id.
+	*/
 	static firstGM() {
 		let i;
 
@@ -477,26 +491,30 @@ class TorchLight {
 
 
 		console.log("Initialisation");
+		// Ensure all buttons are in default state
+		TorchLight.resetTorchLightButtons();
 
 		// Get the status of the three types of lights
-		let statusLight = token.getFlag("torchlight", "lightStatus");
-		if (statusLight == undefined || statusLight == null) {
-			statusLight = false;
+		let lightStatus = token.getFlag("torchlight", "lightStatus");
+		if (lightStatus == undefined || lightStatus == null) {
+			lightStatus = false;
 			await token.setFlag("torchlight", "lightStatus", false);
 		}
-		let statusLantern = token.getFlag("torchlight", "lanternStatus");
-		if (statusLantern == undefined || statusLantern == null) {
+		let lanternStatus = token.getFlag("torchlight", "lanternStatus");
+		if (lanternStatus == undefined || lanternStatus == null) {
+			lanternStatus = false;
 			await token.setFlag("torchlight", "lanternStatus", false);
 		}
-		let statusTorch = token.getFlag("torchlight", "torchStatus");
-		if (statusTorch == undefined || statusTorch == null) {
+		let torchStatus = token.getFlag("torchlight", "torchStatus");
+		if (torchStatus == undefined || torchStatus == null) {
+			torchStatus = false;
 			await token.setFlag("torchlight", "torchStatus", false);
 		}
 
 		// Initial button state when the HUD comes up
-		if (statusLight) TorchLight.buttons.light.addClass("active");
-		if (statusLantern) TorchLight.buttons.lantern.addClass("active");
-		if (statusTorch) TorchLight.buttons.torch.addClass("active");
+		if (lightStatus) TorchLight.enableTorchlightButton(TorchLight.buttons.light, token);
+		if (lanternStatus) TorchLight.enableTorchlightButton(TorchLight.buttons.lantern, token);
+		if (torchStatus) TorchLight.enableTorchlightButton(TorchLight.buttons.torch, token);
 
 		// Check the permissions to manage the lights
 		if (data.isGM === true || game.settings.get("torchlight", "playerActivation") === true) {
@@ -506,17 +524,14 @@ class TorchLight {
 				TorchLight.enableTorchlightButton(TorchLight.buttons.light, token);
 				TorchLight.disableTorchlightButton(TorchLight.buttons.lantern);
 				TorchLight.disableTorchlightButton(TorchLight.buttons.torch);
-				TorchLight.buttons.light.addClass("active");
 			} else if (token.getFlag("torchlight", "lanternStatus")) {
 				TorchLight.disableTorchlightButton(TorchLight.buttons.light);
 				TorchLight.enableTorchlightButton(TorchLight.buttons.lantern, token);
 				TorchLight.disableTorchlightButton(TorchLight.buttons.torch);
-				TorchLight.buttons.lantern.addClass("active");
 			} else if (token.getFlag("torchlight", "torchStatus")) {
 				TorchLight.disableTorchlightButton(TorchLight.buttons.light);
 				TorchLight.disableTorchlightButton(TorchLight.buttons.lantern);
 				TorchLight.enableTorchlightButton(TorchLight.buttons.torch, token);
-				TorchLight.buttons.torch.addClass("active");
 			} else
 				TorchLight.enableRelevantButtons(token);
 		} else {
